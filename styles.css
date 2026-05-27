@@ -985,6 +985,34 @@ footer a:hover { text-decoration: underline; }
 }
 .admin-btn.secondary:hover { background: #c8c8c8; }
 
+.admin-pdf-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.admin-btn-pdf {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  font-size: 0.82rem;
+  background: var(--green-pale);
+  color: var(--green);
+  border: 1px solid rgba(0,103,71,0.25);
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  transition: background 0.18s var(--ease), color 0.18s var(--ease);
+}
+.admin-btn-pdf:hover  { background: var(--green); color: white; }
+.admin-btn-pdf:disabled { opacity: 0.5; cursor: not-allowed; }
+.admin-pdf-status-loading { font-size: 0.78rem; color: var(--muted); font-style: italic; }
+.admin-pdf-status-ok      { font-size: 0.78rem; color: var(--green); font-weight: 500; }
+.admin-pdf-status-error   { font-size: 0.78rem; color: #c0392b; }
+
 .admin-msg {
   font-size: 0.8rem;
   padding: 8px 10px;

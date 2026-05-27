@@ -81,8 +81,21 @@
     <div id="admin-syllabus-view" style="display:none">
       <div class="admin-field">
         <label for="admin-syllabus-input">Course Syllabus Text</label>
+        <div class="admin-pdf-row">
+          <button class="admin-btn admin-btn-pdf" id="admin-pdf-btn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            Upload PDF
+          </button>
+          <span id="admin-pdf-status"></span>
+        </div>
+        <input type="file" id="admin-pdf-input" accept=".pdf" style="display:none" />
         <textarea id="admin-syllabus-input"
-          placeholder="Paste your full syllabus here. This text is sent with every AI request as context."></textarea>
+          placeholder="Paste your full syllabus here, or upload a PDF above. This text is sent with every AI request as context."></textarea>
       </div>
       <div class="admin-actions">
         <button class="admin-btn primary" id="admin-save-btn">Save Syllabus</button>
@@ -119,6 +132,9 @@
   var saveBtn    = document.getElementById('admin-save-btn');
   var sylCancel  = document.getElementById('admin-syllabus-cancel');
   var sylMsg     = document.getElementById('admin-syllabus-msg');
+  var pdfBtn     = document.getElementById('admin-pdf-btn');
+  var pdfInput   = document.getElementById('admin-pdf-input');
+  var pdfStatus  = document.getElementById('admin-pdf-status');
 
   /* ── State ───────────────────────────────────────────────── */
   var isOpen = false;
@@ -327,6 +343,69 @@
       sylMsg.className = 'admin-msg';
       sylMsg.textContent = '';
     }, 3000);
+  });
+
+  /* ── PDF upload ──────────────────────────────────────────── */
+  var PDFJS_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+
+  function loadPdfJs(callback) {
+    if (window.pdfjsLib) { callback(null); return; }
+    var script = document.createElement('script');
+    script.src = PDFJS_CDN;
+    script.onload = function () {
+      // Point the worker to the same CDN version
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      callback(null);
+    };
+    script.onerror = function () { callback(new Error('Failed to load PDF.js from CDN.')); };
+    document.head.appendChild(script);
+  }
+
+  async function extractPdfText(file) {
+    var arrayBuffer = await file.arrayBuffer();
+    var pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    var pages = [];
+    for (var i = 1; i <= pdf.numPages; i++) {
+      var page = await pdf.getPage(i);
+      var content = await page.getTextContent();
+      var pageText = content.items.map(function (item) { return item.str; }).join(' ');
+      pages.push(pageText);
+    }
+    return pages.join('\n\n');
+  }
+
+  pdfBtn.addEventListener('click', function () { pdfInput.click(); });
+
+  pdfInput.addEventListener('change', function () {
+    var file = pdfInput.files && pdfInput.files[0];
+    if (!file) return;
+    // Reset so the same file can be re-selected if needed
+    pdfInput.value = '';
+
+    pdfStatus.textContent = 'Extracting text from PDF…';
+    pdfStatus.className = 'admin-pdf-status-loading';
+    pdfBtn.disabled = true;
+
+    loadPdfJs(function (loadErr) {
+      if (loadErr) {
+        pdfStatus.textContent = 'Error: ' + loadErr.message;
+        pdfStatus.className = 'admin-pdf-status-error';
+        pdfBtn.disabled = false;
+        return;
+      }
+
+      extractPdfText(file).then(function (text) {
+        sylInput.value = text;
+        pdfStatus.textContent = '✓ Text extracted — review and click Save Syllabus.';
+        pdfStatus.className = 'admin-pdf-status-ok';
+        pdfBtn.disabled = false;
+      }).catch(function (err) {
+        pdfStatus.textContent = 'Parse error: ' + (err.message || 'Could not read PDF.');
+        pdfStatus.className = 'admin-pdf-status-error';
+        pdfBtn.disabled = false;
+      });
+    });
   });
 
 })();
